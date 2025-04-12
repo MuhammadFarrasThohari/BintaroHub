@@ -1,8 +1,30 @@
-@tailwind base;
+/* @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities; */
 
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #0E5799;
+  --color-allWhite: #F1F1F1;
+  --color-allBlack: #303030;
+  --color-subhead: #707070;
+  --color-subsubhead: #BEBEBE;
+  --color-desc: #707070;
+  --color-danger: #B23A3A;
+  --color-forumBox: #EAEAEA;
+
+  --font-lsLight : lisans-light, sans-serif;
+  --font-lsLightItalic : lisans-light-italic, sans-serif;
+  --font-lsRegular : lisans-regular, sans-serif;
+  --font-lsRegularItalic : lisans-regular-italic, sans-serif;
+  --font-lsSemibold : lisans-semibold, sans-serif;
+  --font-lsSemiboldItalic : lisans-semibold-italic, sans-serif;
+  --font-lsBlack : lisans-black, sans-serif;
+}
+
+
+
 
 #root {
   max-width: 1280px;
@@ -12,18 +34,18 @@
 
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+.welcome {
+  @apply text-amber-200 text-2xl bg-allBlack
 }
-/* .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  @apply bg-allWhite
 }
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-} */
 
 @keyframes logo-spin {
   from {
