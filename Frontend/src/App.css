@@ -1,8 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "tailwindcss";
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
+
 }
 
 .logo {
@@ -11,12 +18,12 @@
   will-change: filter;
   transition: filter 300ms;
 }
-.logo:hover {
+/* .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
-}
+} */
 
 @keyframes logo-spin {
   from {
@@ -39,4 +46,54 @@
 
 .read-the-docs {
   color: #888;
+}
+
+
+/* Linear Sans fonts  */
+@font-face {
+  font-family: lisans-light;
+  src: url('./assets/fonts/linearsanstrial-light.otf')  format('opentype');
+  
+}
+
+@font-face {
+  font-family: lisans-light-italic;
+  src: url('./assets/fonts/linearsanstrial-lightitalic.otf')  format('opentype');
+  
+}
+
+@font-face {
+  font-family: lisans-regular;
+  src: url('./assets/fonts/linearsanstrial-regular.otf')  format('opentype');
+  
+}
+
+@font-face {
+  font-family: lisans-regular-italic;
+  src: url('./assets/fonts/linearsanstrial-italic.otf')  format('opentype');
+  
+}
+
+@font-face {
+  font-family: lisans-semibold;
+  src: url('./assets/fonts/linearsanstrial-semibold.otf')  format('opentype');
+  
+}
+
+@font-face {
+  font-family: lisans-semibold-italic;
+  src: url('./assets/fonts/linearsanstrial-semibolditalic.otf')  format('opentype');
+  
+}
+
+@font-face {
+  font-family: lisans-black;
+  src: url('./assets/fonts/linearsanstrial-black.otf')  format('opentype');
+
+}
+
+@font-face {
+  font-family: lsans-black-italic;
+  src: url('./assets/fonts/linearsanstrial-blackitalic.otf')  format('opentype');
+  
 }
