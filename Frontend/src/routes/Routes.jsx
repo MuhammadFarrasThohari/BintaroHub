@@ -10,6 +10,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<ForumHighlights />} />
+      <Route path="/topik/:namatopik" element={<ForumHighlights />} />
       <Route path="/forum-editor" element={<ForumEditor />} />
       <Route path="/add-forum" element={<AddForum />} />
     </Routes>

@@ -2,7 +2,10 @@ import React from 'react'
 
 const AddForum = () => {
   return (
-    <div>AddForum</div>
+    <main>
+      <div>AddForum</div>
+
+    </main>
   )
 }
 
