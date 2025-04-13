@@ -8,16 +8,33 @@
   @apply p-6 bg-blue-400
 }
 
+@theme {
+  --color-mainBlue: #0E5799;
+  --color-allWhite: #F1F1F1;
+  --color-allBlack: #303030;
+  --color-subhead: #707070;
+  --color-subsubhead: #BEBEBE;
+  --color-desc: #707070;
+  --color-danger: #B23A3A;
+  --color-forumBox: #EAEAEA;
 
+  --font-lsLight : lisans-light, sans-serif;
+  --font-lsLightItalic : lisans-light-italic, sans-serif;
+  --font-lsRegular : lisans-regular, sans-serif;
+  --font-lsRegularItalic : lisans-regular-italic, sans-serif;
+  --font-lsSemibold : lisans-semibold, sans-serif;
+  --font-lsSemiboldItalic : lisans-semibold-italic, sans-serif;
+  --font-lsBlack : lisans-black, sans-serif;
+}
 
 :root {
   /* font-family: system-ui, Avenir, Helvetica, Arial, sans-serif; */
-  line-height: 1.5;
-  font-weight: 400;
+  /* line-height: 1.5;
+  font-weight: 400; */
 
-  color-scheme: light dark;
+  /* color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #242424; */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -26,12 +43,14 @@
 }
 
 a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+  @apply text-base font-lsRegular text-allBlack
+  /* font-weight: 500; */
+  /* color: #646cff; */
+  /* text-decoration: inherit; */
 }
 a:hover {
-  color: #535bf2;
+  /* color: #535bf2; */
+  @apply text-mainBlue cursor-pointer
 }
 
 
@@ -39,28 +58,21 @@ a:hover {
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+p {
+  @apply text-allBlack
 }
 
-@media (prefers-color-scheme: light) {
+input {
+  @apply font-lsRegular text-subhead text-base
+}
+
+
+
+
+/* @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
     background-color: #ffffff;
@@ -71,4 +83,4 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
-}
+} */

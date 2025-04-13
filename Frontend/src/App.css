@@ -3,9 +3,10 @@
 @tailwind utilities; */
 
 @import "tailwindcss";
+@plugin "daisyui" { themes: light --default; }
 
 @theme {
-  --color-primary: #0E5799;
+  --color-allBlue: #0E5799;
   --color-allWhite: #F1F1F1;
   --color-allBlack: #303030;
   --color-subhead: #707070;
@@ -20,34 +21,36 @@
   --font-lsRegularItalic : lisans-regular-italic, sans-serif;
   --font-lsSemibold : lisans-semibold, sans-serif;
   --font-lsSemiboldItalic : lisans-semibold-italic, sans-serif;
+  --font-lsBold : lisans-bold, sans-serif;
+  --font-lsBoldItalic : lisans-bold-italic, sans-serif;
   --font-lsBlack : lisans-black, sans-serif;
+  --font-lsBlackItalic : lisans-black-italic, sans-serif;
 }
 
 
 
 
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  /* max-width: 1280px; */
+  /* margin: 0 auto; */
+  /* text-align: center; */
 
 }
 
 .welcome {
-  @apply text-amber-200 text-2xl bg-allBlack
+  @apply text-amber-200 text-2xl
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  /* margin: 0; */
+  /* display: flex; */
+  /* place-items: center; */
+  /* min-width: 320px; */
+  /* min-height: 100vh; */
   @apply bg-allWhite
 }
 
-@keyframes logo-spin {
+/* @keyframes logo-spin {
   from {
     transform: rotate(0deg);
   }
@@ -60,15 +63,9 @@ body {
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
-}
+} */
 
-.card {
-  padding: 2em;
-}
 
-.read-the-docs {
-  color: #888;
-}
 
 
 /* Linear Sans fonts  */
@@ -105,6 +102,18 @@ body {
 @font-face {
   font-family: lisans-semibold-italic;
   src: url('./assets/fonts/linearsanstrial-semibolditalic.otf')  format('opentype');
+  
+}
+
+@font-face {
+  font-family: lisans-bold;
+  src: url('./assets/fonts/linearsanstrial-bold.otf')  format('opentype');
+  
+}
+
+@font-face {
+  font-family: lisans-bold-italic;
+  src: url('./assets/fonts/linearsanstrial-bolditalic.otf')  format('opentype');
   
 }
 

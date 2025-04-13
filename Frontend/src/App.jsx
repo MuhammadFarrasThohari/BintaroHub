@@ -1,17 +1,19 @@
 import './App.css'
+import { BrowserRouter as Router } from 'react-router'
+
+import NavBar from './components/NavBar'
+import AppRoutes from './routes/Routes'
 
 function App() {
 
 
   return (
-    <>
-      <div>
-        <h1 className='text-6xl font-lsSemibold  font-stretch-ultra-condensed text-allWhite bg-primary p-8'> BintaroHub</h1>
-        {/* <h2 className='welcome testUtil'> Welcome! </h2> */}
-      </div>
+    <Router>
+        <NavBar />
+        <AppRoutes/>
      
-    </>
-  )
+    </Router>
+  ) 
 }
 
 export default App
