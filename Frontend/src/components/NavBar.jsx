@@ -7,10 +7,10 @@ import BHubLogo from '../assets/Logo/BHub-Logo.png'
 const NavBar = () => {
   return (
     <header className="border-b-2 border-subsubhead body-font">
-      <div className="flex items-center justify-between p-5 px-8">
+      <div className="flex items-center justify-between p-5 px-8 ">
         
         {/* Left: Logo */}
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to="/" className="flex items-center space-x-2 ">
           <img className="object-contain size-8" alt="logo" src={BHubLogo} loading="lazy" />
           <p className="text-xl font-lsBold">
             <span className="text-allBlue">Bintaro</span>Hub
@@ -18,7 +18,7 @@ const NavBar = () => {
         </Link>
 
         {/* Center: Search */}
-        <div className="w-1/2">
+        <div className="ml-20 w-[40%] ">
           <label className="input input-bordered flex items-center gap-2 w-full input-xl ">
             <input 
               type="text" 
@@ -30,8 +30,8 @@ const NavBar = () => {
         </div>
 
         {/* Right: Nav + Buttons */}
-        <div className="flex items-center space-x-8">
-          <nav className="flex space-x-6 ">
+        <div className="flex items-center justify-between space-x-8 w-1/3 ">
+          <nav className="flex space-x-12 ">
             <a href="#" >Rules</a>
             <a href="#">About BintaroHub</a>
           </nav>
