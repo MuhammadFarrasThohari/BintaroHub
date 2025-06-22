@@ -4,19 +4,21 @@
 
 @import "tailwindcss";
 
-@utility testUtil {
-  @apply p-6 bg-blue-400
-}
+@plugin "daisyui" { themes: light --default; }
+
+
 
 @theme {
+  /* --color-*: initial;  */
   --color-allBlue: #0E5799;
-  --color-allWhite: #F1F1F1;
+  --color-lightBlue: #3B7AB2;
+  --color-allWhite: #f9f9f9;
   --color-allBlack: #303030;
   --color-subhead: #707070;
   --color-subsubhead: #BEBEBE;
   --color-desc: #707070;
   --color-danger: #B23A3A;
-  --color-forumBox: #EAEAEA;
+  --color-forumBox: #f1f1f1;
 
   --font-lsLight : lisans-light, sans-serif;
   --font-lsLightItalic : lisans-light-italic, sans-serif;
@@ -25,6 +27,15 @@
   --font-lsSemibold : lisans-semibold, sans-serif;
   --font-lsSemiboldItalic : lisans-semibold-italic, sans-serif;
   --font-lsBlack : lisans-black, sans-serif;
+}
+
+body {
+  /* margin: 0; */
+  /* display: flex; */
+  /* place-items: center; */
+  /* min-width: 320px; */
+  /* min-height: 100vh; */
+  @apply bg-allWhite
 }
 
 :root {
@@ -46,16 +57,25 @@ main {
   @apply min-h-[85svh] px-10 py-8
 }
 
-a {
-  @apply text-base font-lsRegular text-allBlack
-  /* font-weight: 500; */
-  /* color: #646cff; */
-  /* text-decoration: inherit; */
+a.ulineHover {
+  @apply relative inline-block text-base font-lsRegular text-allBlack cursor-pointer;
+  text-decoration: none;
 }
-a:hover {
-  /* color: #535bf2; */
-  @apply text-allBlue cursor-pointer
+
+a.ulineHover::after {
+  content: '';
+  @apply absolute left-0 bottom-0.5 h-0.5 bg-allBlue transition-all ease-out duration-500;
+  width: 0;
 }
+
+a.ulineHover:hover::after {
+  width: 100%;
+}
+
+a.ulineHover:hover {
+  @apply text-allBlue;
+}
+
 
 
 
@@ -67,12 +87,29 @@ h1 {
 }
 
 p {
-  @apply text-allBlack
+  @apply text-subhead font-lsRegular
 }
 
 input {
   @apply font-lsRegular text-subhead text-base
 }
+
+button:hover{
+  @apply transition-all ease-out duration-500
+}
+
+/* Topics sidebar */
+.sidebar-active {
+  @apply bg-blue-100 text-allBlue rounded
+  border-l-4 border-lightBlue;
+}
+
+/* .sidebar-active {
+  background-color: #f3f4f6;
+  border-left: 3px solid #3b82f6;
+  color: #1f2937;
+} */
+
 
 
 /* Small news boxes */

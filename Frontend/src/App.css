@@ -3,31 +3,10 @@
 @tailwind utilities; */
 
 @import "tailwindcss";
-@plugin "daisyui" { themes: light --default; }
 
-@theme {
-  --color-allBlue: #0E5799;
-  --color-allWhite: #F1F1F1;
-  --color-allBlack: #303030;
-  --color-subhead: #707070;
-  --color-subsubhead: #BEBEBE;
-  --color-desc: #707070;
-  --color-danger: #B23A3A;
-  --color-forumBox: #EAEAEA;
-
-  --font-lsLight : lisans-light, sans-serif;
-  --font-lsLightItalic : lisans-light-italic, sans-serif;
-  --font-lsRegular : lisans-regular, sans-serif;
-  --font-lsRegularItalic : lisans-regular-italic, sans-serif;
-  --font-lsSemibold : lisans-semibold, sans-serif;
-  --font-lsSemiboldItalic : lisans-semibold-italic, sans-serif;
-  --font-lsBold : lisans-bold, sans-serif;
-  --font-lsBoldItalic : lisans-bold-italic, sans-serif;
-  --font-lsBlack : lisans-black, sans-serif;
-  --font-lsBlackItalic : lisans-black-italic, sans-serif;
+@utility testUtil {
+  @apply p-6 bg-allBlue
 }
-
-
 
 
 #root {
@@ -42,14 +21,7 @@
 }
 
 
-body {
-  /* margin: 0; */
-  /* display: flex; */
-  /* place-items: center; */
-  /* min-width: 320px; */
-  /* min-height: 100vh; */
-  @apply bg-allWhite
-}
+
 
 /* @keyframes logo-spin {
   from {

@@ -4,12 +4,13 @@ import { IoPinSharp } from "react-icons/io5";
 import SmallNews from '../components/SmallNews';
 import rwbimg from '../assets/dummyImg/911RWB.jpg' 
 
+
 const ForumHighlights = () => {
   const { namatopik } = useParams()  // Get the topic name from the URL
 
   // Capitalize the first letter for better formatting (optional)
   const formatTopic = topic => {
-    if (!topic) return 'Forum Highlights'
+    if (!topic) return 'Highlighted forums';
     return topic.charAt(0).toUpperCase() + topic.slice(1)
   }
 
@@ -62,6 +63,7 @@ const ForumHighlights = () => {
         </div>
         
       </section>
+     
     </main>
   )
 }
