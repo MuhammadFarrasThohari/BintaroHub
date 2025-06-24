@@ -4,9 +4,9 @@
 
 @import "tailwindcss";
 
-@utility testUtil {
+/* @utility testUtil {
   @apply p-6 bg-allBlue
-}
+} */
 
 
 #root {

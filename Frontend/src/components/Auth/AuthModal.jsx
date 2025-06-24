@@ -1,42 +1,35 @@
-// src/components/AuthModal.jsx
+// src/components/Auth/AuthModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import InputField from '../InputField';
-import PrimaryBtn from '../PrimaryBtn'; 
+import PrimaryBtn from '../PrimaryBtn';
+import { supabase } from './SupabaseClient'; 
 
-// Kita tentukan mode autentikasi yang ada
 const AUTH_MODES = {
   LOGIN: 'login',
   SIGN_UP: 'signUp',
 };
 
-const AuthModal = ({ id = 'auth_modal', initialMode = AUTH_MODES.LOGIN }) => {
-  // State ini akan menyimpan mode form yang sedang aktif: 'login' atau 'signUp'
+const AuthModal = ({ id = 'auth_modal', initialMode = AUTH_MODES.LOGIN, onClose }) => {
   const [currentMode, setCurrentMode] = useState(initialMode);
-
-  // State ini untuk menyimpan nilai dari input-input form
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
   });
-
-  // useRef digunakan untuk mendapatkan referensi langsung ke elemen <dialog> HTML
-  // Ini penting karena DaisyUI menggunakan JavaScript langsung di elemen <dialog> untuk membuka/menutupnya
+  const [message, setMessage] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
   const modalRef = useRef(null);
 
-  // useEffect ini akan berjalan setiap kali nilai 'initialMode' dari parent berubah
-  // Tujuannya: memastikan modal selalu membuka form yang benar saat diklik dari navbar
   useEffect(() => {
     setCurrentMode(initialMode);
-    // Reset formData setiap kali mode modal berubah
     setFormData({
       username: '',
       email: '',
       password: '',
     });
-  }, [initialMode]); // Efek ini hanya akan berjalan jika 'initialMode' berubah
+    setMessage('');
+  }, [initialMode]);
 
-  // Fungsi untuk menangani perubahan pada input form
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({
@@ -45,62 +38,75 @@ const AuthModal = ({ id = 'auth_modal', initialMode = AUTH_MODES.LOGIN }) => {
     }));
   };
 
-  // Fungsi untuk menangani pengiriman form Login
-  const handleLoginSubmit = (e) => {
-    e.preventDefault(); // Mencegah halaman reload
-    console.log('Form Login dikirim:', { email: formData.email, password: formData.password });
-    // TODO: Di sini nanti Anda panggil API untuk proses Login
-    // Contoh:
-    // try {
-    //   const response = await fetch('/api/login', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ email: formData.email, password: formData.password })
-    //   });
-    //   const data = await response.json();
-    //   if (response.ok) {
-    //     console.log('Login berhasil:', data);
-    //     modalRef.current?.close(); // Tutup modal jika berhasil
-    //   } else {
-    //     console.error('Login gagal:', data.message);
-    //     // Tampilkan pesan error ke pengguna
-    //   }
-    // } catch (error) {
-    //   console.error('Terjadi error saat login:', error);
-    // }
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setAuthLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (error) {
+        setMessage(`Login failed: ${error.message}`);
+        console.error('Login failed:', error);
+      } else if (data.user) {
+        setMessage('Login successful!');
+        console.log('Login successful:', data.user);
+        modalRef.current?.close();
+      } else {
+        setMessage('Please check your email to confirm your account.');
+      }
+    } catch (error) {
+      setMessage(`An unexpected error occurred: ${error.message}`);
+      console.error('Error during login:', error);
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
-  // Fungsi untuk menangani pengiriman form Sign Up
-  const handleSignUpSubmit = (e) => {
-    e.preventDefault(); // Mencegah halaman reload
-    console.log('Form Sign Up dikirim:', formData);
-    // TODO: Di sini nanti Anda panggil API untuk proses Sign Up
-    // Contoh:
-    // try {
-    //   const response = await fetch('/api/signup', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(formData)
-    //   });
-    //   const data = await response.json();
-    //   if (response.ok) {
-    //     console.log('Sign Up berhasil:', data);
-    //     setCurrentMode(AUTH_MODES.LOGIN); // Otomatis pindah ke form Login setelah Sign Up berhasil
-    //     // Anda juga bisa menutup modal di sini: modalRef.current?.close();
-    //   } else {
-    //     console.error('Sign Up gagal:', data.message);
-    //     // Tampilkan pesan error ke pengguna
-    //   }
-    // } catch (error) {
-    //   console.error('Terjadi error saat sign up:', error);
-    // }
+  const handleSignUpSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    setAuthLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            username: formData.username,
+          },
+        },
+      });
+
+      if (error) {
+        setMessage(`Sign up failed: ${error.message}`);
+        console.error('Sign Up failed:', error);
+      } else if (data.user) {
+        setMessage('Sign up successful! Please check your email to verify your account.');
+        console.log('Sign Up successful:', data.user);
+        setCurrentMode(AUTH_MODES.LOGIN);
+        setFormData({ username: '', email: '', password: '' });
+      } else {
+        setMessage('Sign up successful! Please check your email to verify your account.');
+        setCurrentMode(AUTH_MODES.LOGIN);
+        setFormData({ username: '', email: '', password: '' });
+      }
+    } catch (error) {
+      setMessage(`An unexpected error occurred: ${error.message}`);
+      console.error('Error during sign up:', error);
+    } finally {
+      setAuthLoading(false);
+    }
   };
 
   return (
-   
     <dialog id={id} className="modal" ref={modalRef}>
       <div className="modal-box flex flex-col items-center justify-center gap-8 py-12">
-
         <div className="space-y-2 text-center">
           {currentMode === AUTH_MODES.SIGN_UP ? (
             <>
@@ -115,8 +121,13 @@ const AuthModal = ({ id = 'auth_modal', initialMode = AUTH_MODES.LOGIN }) => {
           )}
         </div>
 
+        {message && (
+          <div className={`alert ${message.includes('failed') || message.includes('error') ? 'alert-error' : 'alert-success'} w-full max-w-sm`}>
+            <span>{message}</span>
+          </div>
+        )}
+
         {currentMode === AUTH_MODES.SIGN_UP ? (
-        
           <form className="flex flex-col space-y-10 w-full max-w-sm" onSubmit={handleSignUpSubmit}>
             <div className="space-y-4 w-full">
                 <InputField
@@ -143,7 +154,7 @@ const AuthModal = ({ id = 'auth_modal', initialMode = AUTH_MODES.LOGIN }) => {
                     label="Password"
                     type="password"
                     name="password"
-                    placeholder="More than 8 character"
+                    placeholder="More than 8 characters"
                     value={formData.password}
                     onChange={handleChange}
                     required
@@ -151,17 +162,16 @@ const AuthModal = ({ id = 'auth_modal', initialMode = AUTH_MODES.LOGIN }) => {
                     ariaLabel="Password"
                 />
             </div>
-            <PrimaryBtn type="submit" btnLabel="Sign up" />
+            <PrimaryBtn type="submit" btnLabel={authLoading ? 'Signing Up...' : 'Sign up'} disabled={authLoading} />
             <p className="text-sm text-subhead text-center">
-              Sudah punya akun?{' '}
+              Already have an account?{' '}
               <a href="#" className="ulineHover"
-                 onClick={(e) => { e.preventDefault(); setCurrentMode(AUTH_MODES.LOGIN); }}>
+                onClick={(e) => { e.preventDefault(); setCurrentMode(AUTH_MODES.LOGIN); }}>
                 Log in
               </a>
             </p>
           </form>
         ) : (
-         
           <form className="flex flex-col space-y-10 w-full max-w-sm" onSubmit={handleLoginSubmit}>
             <div className="space-y-4 w-full">
                 <InputField
@@ -185,11 +195,11 @@ const AuthModal = ({ id = 'auth_modal', initialMode = AUTH_MODES.LOGIN }) => {
                     ariaLabel="Password"
                 />
             </div>
-            <PrimaryBtn type="submit" btnLabel="Log in" />
+            <PrimaryBtn type="submit" btnLabel={authLoading ? 'Logging In...' : 'Log in'} disabled={authLoading} />
             <p className="text-sm text-subhead text-center">
-              Belum punya akun?{' '}
+              Don't have an account yet?{' '}
               <a href="#" className="ulineHover"
-                 onClick={(e) => { e.preventDefault(); setCurrentMode(AUTH_MODES.SIGN_UP); }}>
+                onClick={(e) => { e.preventDefault(); setCurrentMode(AUTH_MODES.SIGN_UP); }}>
                 Sign up
               </a>
             </p>
@@ -197,14 +207,12 @@ const AuthModal = ({ id = 'auth_modal', initialMode = AUTH_MODES.LOGIN }) => {
         )}
       </div>
 
-      {/* Ini adalah bagian backdrop modal DaisyUI. Saat diklik, modal akan tertutup. */}
-      {/* Tombol 'close' di dalamnya tersembunyi tapi penting untuk fungsionalitas DaisyUI. */}
       <form method="dialog" className="modal-backdrop">
-        <button type="submit" aria-label="Tutup modal">tutup</button>
+        <button type="submit" aria-label="Close modal" onClick={onClose}>close</button>
       </form>
     </dialog>
   );
 };
 
-export { AUTH_MODES }; // Kita ekspor ini agar bisa dipakai di Navbar
+export { AUTH_MODES };
 export default AuthModal;

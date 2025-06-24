@@ -13,7 +13,7 @@ const SmallNews = ({ image, location, title, description }) => {
       <div className='props'>
         <div className='kawasan'>
           <IoPinSharp />
-          <p className='text-base'>{location}</p>
+          <p className='text-sm'>{location}</p>
         </div>
         <h4>{truncatePerWord(title, 3)}</h4>
         <p>{truncatePerWord(description, 7)}</p>

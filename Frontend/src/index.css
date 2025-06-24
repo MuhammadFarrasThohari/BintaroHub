@@ -80,7 +80,7 @@ a.ulineHover:hover {
 
 
 h1 {
-  @apply text-5xl
+  @apply text-4xl
   font-lsRegular text-allBlack 
   tracking-tight
   
@@ -110,7 +110,10 @@ button:hover{
   color: #1f2937;
 } */
 
-
+/* biggest -big news */
+.timePosted {
+  @apply text-sm text-subsubhead font-lsLight
+}
 
 /* Small news boxes */
 
@@ -132,7 +135,7 @@ button:hover{
 
 }
 .smallNews .props h4 {
-  @apply font-lsRegular text-2xl text-allBlack
+  @apply font-lsRegular text-xl text-allBlack
    
 }
 
