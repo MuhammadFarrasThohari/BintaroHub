@@ -2,12 +2,14 @@
 const supabase  = require("./server");
 
 async function signIn(email, password) {
-  const { user, session, error } = await supabase.auth.signIn({
+  const { data, error } = await supabase.auth.signIn({
     email: email,
     password: password,
   });
-  return { user, session, error };
+  return { data, error };
 }
+
+
 
 async function signUp(email, password) {
     const {data, error} = await supabase.auth.signUp({
@@ -16,3 +18,5 @@ async function signUp(email, password) {
     })
 }
 
+
+export { signIn, signUp };
