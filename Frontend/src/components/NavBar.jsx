@@ -1,9 +1,11 @@
 // src/components/NavBar.jsx
 import React, { useState, useEffect } from 'react';
 import { CiSearch } from "react-icons/ci";
-import { Link } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
 
 import BHubLogo from '../assets/Logo/BHub-Logo.png';
+
+import { FiLogOut } from 'react-icons/fi';
 
 import PrimaryBtn from './PrimaryBtn';
 import SecondaryBtn from './SecondaryBtn';
@@ -13,23 +15,41 @@ import { supabase } from './Auth/SupabaseClient';
 const UserProfile = ({ user, onSignOut }) => {
   const displayName = user?.user_metadata?.username || user?.email?.split('@')[0] || 'User';
 
+  const maxNameLength = 6;
+  const truncatedName = displayName.length > maxNameLength ? displayName.slice(0, maxNameLength) + '..' : displayName;
+  const encodedDisplayName = encodeURIComponent(displayName);
+  const customName = user?.user_metadata?.custom_name || `B/${truncatedName}`;
   return (
-    <div className="flex items-center space-x-3">
-      <div className="avatar placeholder">
-        <div className="bg-neutral text-neutral-content rounded-full w-10">
-          <span className="text-lg">{displayName.charAt(0).toUpperCase()}</span>
+    <div className="flex items-center space-x-6  ">
+      <Link to={`/forum-editor/${encodedDisplayName}`} className="flex items-center space-x-2">
+        <div className="avatar placeholder">
+          <div className="bg-neutral text-neutral-content rounded-full w-10">
+            {/* <span className="text-lg font-lsRegular ">{displayName}</span> */}
+          </div>
         </div>
-      </div>
-      <span className="font-lsMedium text-allBlack">{displayName}</span>
-      <PrimaryBtn onClick={onSignOut} btnLabel="Log Out" />
+        <hgroup className='flex flex-col text-left -gap-2'>
+          <span className="font-lsRegular capitalize">{truncatedName}</span>
+          <span className="font-lsRegular text-xs text-subsubhead ">{customName}</span>
+
+        </hgroup>
+      </Link>
+
+      <button onClick={onSignOut} className="text-xl text-danger rotate-x-0 hover:rotate-x-45 hover:scale-x-110 hover:cursor-pointer ease-out transition-all duration-200  ">
+        <FiLogOut />
+      </button>
+
     </div>
   );
 };
 
-const NavBar = () => {
+// Add onSearch prop to NavBar component
+const NavBar = ({ onSearch }) => { 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modalInitialMode, setModalInitialMode] = React.useState(AUTH_MODES.LOGIN);
+  const [searchTerm, setSearchTerm] = useState(''); // New state for search term
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getSessionAndListen = async () => {
@@ -37,9 +57,8 @@ const NavBar = () => {
       setUser(session?.user || null);
       setLoading(false);
     };
-    
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } = {} } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user || null);
         if (event === 'SIGNED_OUT') {
@@ -51,9 +70,21 @@ const NavBar = () => {
     getSessionAndListen();
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
+
+  // Handler for search input changes
+  const handleSearchChange = (event) => {
+    const term = event.target.value;
+    setSearchTerm(term);
+    // Call the onSearch prop function, passing the search term to the parent
+    if (onSearch) {
+      onSearch(term);
+    }
+  };
 
   const handleOpenModal = (mode) => {
     setModalInitialMode(mode);
@@ -66,7 +97,7 @@ const NavBar = () => {
       console.error('Error signing out:', error.message);
     } else {
       console.log('User signed out successfully.');
-      // User state will be set to null by the onAuthStateChange listener
+      navigate('/')
     }
   };
 
@@ -96,12 +127,15 @@ const NavBar = () => {
           </h2>
         </Link>
 
+        {/* Searhbox */}
         <div className="ml-20 w-[40%] ">
           <label className="input input-bordered flex items-center gap-2 w-full input-xl ">
             <input
               type="text"
-              className="grow focus:outline-allBlue "
+              className="grow focus:outline-allBlue"
               placeholder="Search by title, topic, location—anything is possible!"
+              value={searchTerm} // Bind input value to state
+              onChange={handleSearchChange} // Add onChange handler
             />
             <CiSearch className="text-2xl text-subhead" />
           </label>
@@ -110,7 +144,10 @@ const NavBar = () => {
         <div className="flex items-center justify-between space-x-8 w-1/3 ">
           <nav className="flex space-x-10">
             <a href="#" className='ulineHover'>Rules</a>
-            <a href="#" className='ulineHover'>About BintaroHub</a>
+            <a href="#" className='ulineHover'>About us</a>
+            {user && (
+              <Link to="/add-forum" className='ulineHover'>Add forum</Link>
+            )}
           </nav>
 
           {user ? (
@@ -133,7 +170,7 @@ const NavBar = () => {
           <AuthModal
             id="auth_modal"
             initialMode={modalInitialMode}
-            onClose={handleOpenModal} // This handles closing the modal and potentially resetting its state
+            onClose={handleOpenModal}
           />
         </div>
 

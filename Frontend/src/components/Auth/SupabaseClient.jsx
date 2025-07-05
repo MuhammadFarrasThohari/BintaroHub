@@ -4,7 +4,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 
-export const supabaseUrly = import.meta.env.VITE_SUPABASE_URL;
+// export const supabaseUrly = import.meta.env.VITE_SUPABASE_URL;
 
-console.log("Supabase URL from environment variable:", supabaseUrl);
-console.log("Supabase Anon Key from environment variable:", supabaseAnonKey);
+// console.log("Supabase URL from environment variable:", supabaseUrl);
+// console.log("Supabase Anon Key from environment variable:", supabaseAnonKey);
+// console.log("All env vars:", import.meta.env);

@@ -1,106 +1,152 @@
-import { useParams } from 'react-router'
-import { IoPinSharp, IoLocationOutline } from "react-icons/io5";
-import { CiLocationOn } from "react-icons/ci"
+import React, { useState } from 'react';
+import { useParams, useNavigate } from 'react-router';
+import { MdLocationOn, MdKeyboardArrowUp, MdKeyboardArrowDown, MdComment } from "react-icons/md";
+import { forumPosts } from '../data/forumData'; // Assuming forumData.js exports forumPosts
 
-import SmallNews from '../components/SmallNews';
+// Placeholder image for error handling (ensure you have this or remove the onError prop)
+const COMMON_PLACEHOLDER_IMAGE = "https://via.placeholder.com/400x225?text=No+Image";
 
-// images-logo
-import rwbimg from '../assets/dummyImg/911RWB.jpg' 
-import BHLogo from '../assets/Logo/BHub-Logo.png'
 
-const ForumHighlights = () => {
-  const { namatopik } = useParams()  // Get the topic name from the URL
-
-  // Capitalize the first letter for better formatting (optional)
-  const formatTopic = topic => {
-    if (!topic) return 'Highlighted forums';
-    return topic.charAt(0).toUpperCase() + topic.slice(1)
-  }
-
-  const truncatePerChar = (text, length = 100) => {
-    if (text.length <= length) return text;
-    return text.substring(0, length) + '...';
-  }
-
-  const truncatePerWord = (text, wordLimit = 10) => {
-    const words = text.split(' ');
-    if (words.length <= wordLimit) return text;
-    return words.slice(0, wordLimit).join(' ') + '...';
-  }
-
+function ForumPostCard({ post, onVote, onCardClick }) {
+  // Destructure 'userVote' from post as well
+  const { image, category, subCategory, location, title, description, upvotes, downvotes, comments, id, userVote } = post;
 
   return (
-    <main className=' mx-16 '>
-      <h1 className="uppercase ">
-        {formatTopic(namatopik)}
-      </h1>
+    <div
+      className="bg-white/70 rounded shadow-sm hover:shadow-lg transition-shadow flex flex-col cursor-pointer"
+      onClick={() => onCardClick(id)}
+    >
+      <div className="w-full h-48 bg-gray-200 overflow-hidden"> {/* Changed aspect-video to h-48 and added overflow-hidden */}
+        <img
+          src={image}
+          alt={title}
+          loading='lazy'
+          className="w-full h-full object-cover"
+          onError={(e) => { e.target.src = COMMON_PLACEHOLDER_IMAGE; }}
+        />
+      </div>
 
-      {/* Render posts or content based on the selected topic */}
-      <section className='grid grid-cols-5 gap-2 my-6'>
-        <article class='col-span-3 min-h-80'>
-          <figure>
-            <img class='object-cover w-full h-72 rounded-t-md' src={rwbimg} alt='hero' />
-            </figure>
-          <div class='p-6 bg-forumBox rounded-b-md flex flex-col gap-2'>
-            <header class='flex items-center justify-between'>
-              <div class='flex items-center space-x-1'>
-                <img class='object-contain size-4 ' src={BHLogo} alt='BintaroHub Logo' />
-                <h2 class='text-sm font-lsRegular'>
-                  Berita Lokal
-                  <span class='text-allBlue'>—Lalu Lintas</span>
-                </h2>
-                <address class='flex items-center space-x-1 ml-4'>
-                  <IoLocationOutline class='text-subhead text-base' />
-                  <p class='font-lsRegular text-sm'>Sektor 7</p>
-                </address>
-              </div>
-              <time class='text-sm font-lsLight' datetime='2025-06-23T17:54:58-07:00'>4hrs ago</time >
-            </header>
-            <div>
-              <h2 class='text-2xl font-lsRegular'>
-                The longest word in any of the major English...
-              </h2>
-              <p>
-                {truncatePerWord(
-                  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.',
-                  10
-                )}
-              </p>
-            </div>
-          </div>
-        </article>
-
-        <div className=' col-span-2 flex-col flex gap-2'>
-          <article className=' bg-allWhite p-4 rounded-md shadow-md'>
-            <p> TEst</p>  
-          </article>
-          
-          {/* <SmallNews 
-            image={rwbimg} 
-            location="Sektor 1, Bintaro" 
-            title="The longest word in any of the major English..." 
-            description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent commodo cursus magna, vel scelerisque nisl consectetur et."
-          />
-          <SmallNews 
-            image={rwbimg} 
-            location="Sektor 1, Bintaro" 
-            title="The longest word in any of the major English..." 
-            description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent commodo cursus magna, vel scelerisque nisl consectetur et."
-          />
-          <SmallNews 
-            image={rwbimg} 
-            location="Sektor 1, Bintaro" 
-            title="The longest word in any of the major English..." 
-            description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent commodo cursus magna, vel scelerisque nisl consectetur et."
-          /> */}
-          
-          
+      <div className="p-4 flex flex-col flex-grow">
+        <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
+          <MdLocationOn className="w-4 h-4 text-gray-500" />
+          <span>{category} {subCategory && `- ${subCategory}`}</span>
+          <span className="text-gray-400">•</span>
+          <span>{location}</span>
         </div>
-        
-      </section>
-     
-    </main>
-  )
+
+        <h2 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">{title}</h2>
+        <p className="text-sm text-gray-600 line-clamp-3 mb-4">{description}</p>
+
+        <div className="flex items-center justify-between border-t pt-3 mt-auto text-sm text-gray-600">
+          <div className="flex gap-4">
+            <span className="flex items-center gap-1">
+              <MdKeyboardArrowUp
+                onClick={(e) => { e.stopPropagation(); onVote(id, 'up'); }}
+                // Apply green color if user has upvoted
+                className={`hover:text-green-500 cursor-pointer ${userVote === 'up' ? 'text-green-500' : ''}`}
+              />
+              {upvotes}
+            </span>
+            <span className="flex items-center gap-1">
+              <MdKeyboardArrowDown
+                onClick={(e) => { e.stopPropagation(); onVote(id, 'down'); }}
+                // Apply red color if user has downvoted
+                className={`hover:text-red-500 cursor-pointer ${userVote === 'down' ? 'text-red-500' : ''}`}
+              />
+              {downvotes}
+            </span>
+            <span className="flex items-center gap-1">
+              <MdComment />
+              {comments}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default ForumHighlights
+const ForumHighlights = () => {
+  const { namatopik } = useParams();
+  const navigate = useNavigate();
+
+  // Initialize forums state by mapping over forumPosts
+  // and adding a 'userVote' property to each post object.
+  // This ensures each post can track the user's vote.
+  const [forums, setForums] = useState(() => {
+    return forumPosts.map(post => ({
+      ...post,
+      userVote: null // 'null', 'up', or 'down'
+    }));
+  });
+
+  const formatTopicForDisplay = (topic) => {
+    if (!topic) return 'Highlighted Forums';
+    return topic.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
+  };
+
+  const filteredPosts = forums.filter(post => {
+    const topic = formatTopicForDisplay(namatopik).toLowerCase();
+    return !namatopik || namatopik === 'highlighted-forums'
+      || post.category.toLowerCase() === topic
+      || (post.subCategory && post.subCategory.toLowerCase() === topic);
+  });
+
+  const handleVote = (id, type) => {
+    setForums(prevForums =>
+      prevForums.map(post => {
+        if (post.id === id) {
+          const updatedPost = { ...post };
+
+          // If the user is voting the same way again, unvote
+          if (updatedPost.userVote === type) {
+            if (type === 'up') updatedPost.upvotes--;
+            else updatedPost.downvotes--;
+            updatedPost.userVote = null;
+          }
+          // If the user is changing their vote (e.g., from up to down)
+          else if (updatedPost.userVote !== null && updatedPost.userVote !== type) {
+            if (updatedPost.userVote === 'up') updatedPost.upvotes--; // Remove old upvote
+            else updatedPost.downvotes--; // Remove old downvote
+
+            if (type === 'up') updatedPost.upvotes++; // Add new upvote
+            else updatedPost.downvotes++; // Add new downvote
+            updatedPost.userVote = type;
+          }
+          // If the user is voting for the first time or from an unvoted state
+          else {
+            if (type === 'up') updatedPost.upvotes++;
+            else updatedPost.downvotes++;
+            updatedPost.userVote = type;
+          }
+          return updatedPost;
+        }
+        return post;
+      })
+    );
+  };
+
+  const handleCardClick = (id) => {
+    navigate(`/forum/${id}`);
+  };
+
+  return (
+    <main className="mx-4 md:mx-16 my-8">
+      <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6 text-center uppercase">
+        {formatTopicForDisplay(namatopik)}
+      </h1>
+
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredPosts.length > 0 ? (
+          filteredPosts.map(post => (
+            <ForumPostCard key={post.id} post={post} onVote={handleVote} onCardClick={handleCardClick} />
+          ))
+        ) : (
+          <p className="text-center text-gray-500 col-span-full">No posts available.</p>
+        )}
+      </section>
+    </main>
+  );
+};
+
+export default ForumHighlights;

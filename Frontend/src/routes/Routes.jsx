@@ -2,6 +2,7 @@ import React from 'react'
 import { Route, Routes } from 'react-router'
 
 import ForumHighlights from '../pages/ForumHighlights'
+import ForumDetail from '../pages/ForumDetail'
 import ForumEditor from '../pages/ForumEditor'
 import AddForum from '../pages/AddForum'
 
@@ -11,8 +12,9 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<ForumHighlights />} />
       <Route path="/topik/:namatopik" element={<ForumHighlights />} />
-      <Route path="/forum-editor" element={<ForumEditor />} />
+      <Route path="/forum-editor/:username" element={<ForumEditor />} />
       <Route path="/add-forum" element={<AddForum />} />
+      <Route path="/forum/:id" element={<ForumDetail />} />
     </Routes>
   )
 }
