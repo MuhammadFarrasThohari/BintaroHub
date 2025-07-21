@@ -14,20 +14,54 @@ const COMMON_PLACEHOLDER_IMAGE =
   "https://via.placeholder.com/400x225?text=No+Image";
 
 function ForumPostCard({ post, onVote, onCardClick }) {
+  const categories = [
+    {
+      name: "Berita Lokal",
+      subcategories: [
+        "Baru saja",
+        "Kriminalitas",
+        "Kondisi Sektiar",
+        "Bencana",
+        "Lalu lintas",
+      ],
+    },
+    {
+      name: "Opini & Diskusi",
+      subcategories: ["Suara Rakyat", "Rekomendasi", "Setuju gak?"],
+    },
+    {
+      name: "Layanan Publik",
+      subcategories: ["Fasilitas umum", "Kebijakan lokal", "Bencana"],
+    },
+    {
+      name: "Masyarakat",
+      subcategories: ["Sosial & event", "Lingkungan", "Hewan hilang"],
+    },
+  ];
+
+  const subCategoryToParent = {};
+
+  categories.forEach((category) => {
+    category.subcategories.forEach((sub) => {
+      subCategoryToParent[sub.toLowerCase()] = category.name;
+    });
+  });
+
   // Destructure 'userVote' from post as well
   const {
-    image,
-    category,
-    subCategory,
-    location,
-    title,
-    description,
+    foto,
+    tag,
+    lokasi,
+    judul,
+    isi,
     upvotes,
     downvotes,
     comments,
     id,
     userVote,
   } = post;
+  const subCategory = subCategoryToParent[tag.toLowerCase()] || null;
+
 
   return (
     <div
@@ -38,8 +72,8 @@ function ForumPostCard({ post, onVote, onCardClick }) {
         {" "}
         {/* Changed aspect-video to h-48 and added overflow-hidden */}
         <img
-          src={image}
-          alt={title}
+          src={foto}
+          alt={judul}
           loading="lazy"
           className="w-full h-full object-cover"
           onError={(e) => {
@@ -52,16 +86,16 @@ function ForumPostCard({ post, onVote, onCardClick }) {
         <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
           <MdLocationOn className="w-4 h-4 text-gray-500" />
           <span>
-            {category} {subCategory && `- ${subCategory}`}
+            {tag} {subCategory && `- ${subCategory}`}
           </span>
           <span className="text-gray-400">•</span>
-          <span>{location}</span>
+          <span>{lokasi}</span>
         </div>
 
         <h2 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-          {title}
+          {judul}
         </h2>
-        <p className="text-sm text-gray-600 line-clamp-3 mb-4">{description}</p>
+        <p className="text-sm text-gray-600 line-clamp-3 mb-4">{isi}</p>
 
         <div className="flex items-center justify-between border-t pt-3 mt-auto text-sm text-gray-600">
           <div className="flex gap-4">
@@ -103,11 +137,15 @@ function ForumPostCard({ post, onVote, onCardClick }) {
 }
 
 const ForumHighlights = () => {
+  const { namatopik } = useParams();
+  const navigate = useNavigate();
+
   useEffect(() => {
     async function fetchData() {
       try {
         const data = await getAllForum();
         console.log("Fetched forum data:", data);
+        setForums(data);
       } catch (error) {
         console.error("Error fetching forum data:", error);
       }
@@ -115,18 +153,7 @@ const ForumHighlights = () => {
     fetchData();
   }, []);
 
-  const { namatopik } = useParams();
-  const navigate = useNavigate();
-
-  // Initialize forums state by mapping over forumPosts
-  // and adding a 'userVote' property to each post object.
-  // This ensures each post can track the user's vote.
-  const [forums, setForums] = useState(() => {
-    return forumPosts.map((post) => ({
-      ...post,
-      userVote: null, // 'null', 'up', or 'down'
-    }));
-  });
+  const [forums, setForums] = useState([]);
 
   const formatTopicForDisplay = (topic) => {
     if (!topic) return "Highlighted Forums";
