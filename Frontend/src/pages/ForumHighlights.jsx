@@ -6,7 +6,6 @@ import {
   MdKeyboardArrowDown,
   MdComment,
 } from "react-icons/md";
-import { forumPosts } from "../data/forumData"; // Assuming forumData.js exports forumPosts
 import getAllForum from "../data/getForumHighlight"; // Importing the function to fetch forum data
 
 // Placeholder image for error handling (ensure you have this or remove the onError prop)
@@ -137,8 +136,7 @@ function ForumPostCard({ post, onVote, onCardClick }) {
 }
 
 const ForumHighlights = () => {
-  const { namatopik } = useParams();
-  const navigate = useNavigate();
+  
 
   useEffect(() => {
     async function fetchData() {
@@ -152,6 +150,9 @@ const ForumHighlights = () => {
     }
     fetchData();
   }, []);
+
+  const { namatopik } = useParams();
+  const navigate = useNavigate();
 
   const [forums, setForums] = useState([]);
 
@@ -168,7 +169,7 @@ const ForumHighlights = () => {
     return (
       !namatopik ||
       namatopik === "highlighted-forums" ||
-      post.category.toLowerCase() === topic ||
+      post.tag.toLowerCase() === topic ||
       (post.subCategory && post.subCategory.toLowerCase() === topic)
     );
   });

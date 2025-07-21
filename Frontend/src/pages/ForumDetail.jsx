@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   MdKeyboardArrowUp,
@@ -10,16 +10,28 @@ import {
   MdShare,
   MdFlag
 } from "react-icons/md";
-import { forumPosts } from "../data/forumData";
+import { supabase } from "../components/Auth/SupabaseClient";
 
 const ForumDetailPage = () => {
+  
+  useEffect(() => {
+    async function fetchData() {
+      const { data, error } = await supabase.from("Artikel").select("*, Profile(*)").eq("id", postId).single();
+      if (error) {
+        console.error("Error fetching forum data:", error);
+      } else {
+        console.log("Fetched forum data:", data);
+        setPost(data);
+      }
+    }
+    fetchData();
+  }, []);
+
   const { id } = useParams();
   const postId = parseInt(id);
   const navigate = useNavigate();
 
-  const initialPost = forumPosts.find(p => p.id === postId);
-
-  const [post, setPost] = useState(initialPost);
+  const [post, setPost] = useState(null);
 
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([
@@ -231,25 +243,25 @@ const ForumDetailPage = () => {
         <span onClick={() => navigate(-1)} className="cursor-pointer text-blue-600 hover:underline">
           Forum Highlights
         </span>{" "}
-        &gt; {post.title}
+        &gt; {post.judul}
       </div>
 
       <div className="p-6">
         <div className="text-gray-600 flex items-center gap-2 mb-2">
           <MdLocationOn />
-          <span>{post.category} - {post.subCategory}</span>
+          <span>{post.tag} - {post.subCategory}</span>
           <span className="mx-1">•</span>
-          <span>{post.location}</span>
+          <span>{post.lokasi}</span>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">{post.title}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">{post.judul}</h1>
 
         {/* --- Dynamic Profile Section --- */}
         <div className="flex items-center gap-2 mb-4">
-          {post.avatar && ( // Conditionally render avatar if it exists
+          {post.Profile.foto && ( // Conditionally render avatar if it exists
             <img
-              src={post.avatar}
-              alt={`${post.username}'s Avatar`}
+              src={post.Profile.foto}
+              alt={`${post.Profile.username}'s Avatar`}
               className="w-10 h-10 rounded-full object-cover"
             />
           )}
@@ -259,9 +271,9 @@ const ForumDetailPage = () => {
         </div>
         {/* --- End Dynamic Profile Section --- */}
 
-        {post.image && <img src={post.image} alt={post.title} className="w-full aspect-video object-cover rounded mb-6" />}
+        {post.foto && <img src={post.foto} alt={post.judul} className="w-full aspect-video object-cover rounded mb-6" />}
 
-        <p className="text-gray-700">{post.description}</p>
+        <p className="text-gray-700">{post.isi}</p>
 
         <div className="flex gap-6 mt-6 text-gray-600">
           <div className="flex gap-1 items-center">
