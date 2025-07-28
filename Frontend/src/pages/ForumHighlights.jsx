@@ -59,7 +59,7 @@ function ForumPostCard({ post, onVote, onCardClick }) {
     id,
     userVote,
   } = post;
-  const subCategory = subCategoryToParent[tag.toLowerCase()] || null;
+  const category = subCategoryToParent[tag.toLowerCase()] || null;
 
 
   return (
@@ -85,7 +85,7 @@ function ForumPostCard({ post, onVote, onCardClick }) {
         <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
           <MdLocationOn className="w-4 h-4 text-gray-500" />
           <span>
-            {tag} {subCategory && `- ${subCategory}`}
+             {category && `${category}`} - {tag}
           </span>
           <span className="text-gray-400">•</span>
           <span>{lokasi}</span>

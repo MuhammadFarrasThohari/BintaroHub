@@ -27,11 +27,50 @@ const ForumDetailPage = () => {
     fetchData();
   }, []);
 
+  const categories = [
+    {
+      name: "Berita Lokal",
+      subcategories: [
+        "Baru saja",
+        "Kriminalitas",
+        "Kondisi Sektiar",
+        "Bencana",
+        "Lalu lintas",
+      ],
+    },
+    {
+      name: "Opini & Diskusi",
+      subcategories: ["Suara Rakyat", "Rekomendasi", "Setuju gak?"],
+    },
+    {
+      name: "Layanan Publik",
+      subcategories: ["Fasilitas umum", "Kebijakan lokal", "Bencana"],
+    },
+    {
+      name: "Masyarakat",
+      subcategories: ["Sosial & event", "Lingkungan", "Hewan hilang"],
+    },
+  ];
+  
+  const subCategoryToParent = {};
+
+  categories.forEach((category) => {
+    category.subcategories.forEach((sub) => {
+      subCategoryToParent[sub.toLowerCase()] = category.name;
+    });
+  });
+
+
+
   const { id } = useParams();
   const postId = parseInt(id);
   const navigate = useNavigate();
 
   const [post, setPost] = useState(null);
+  const category =
+    post?.tag && subCategoryToParent[post.tag.toLowerCase()]
+      ? subCategoryToParent[post.tag.toLowerCase()]
+      : null;
 
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState([
@@ -249,7 +288,7 @@ const ForumDetailPage = () => {
       <div className="p-6">
         <div className="text-gray-600 flex items-center gap-2 mb-2">
           <MdLocationOn />
-          <span>{post.tag} - {post.subCategory}</span>
+          <span>{category} - {post.tag}</span>
           <span className="mx-1">•</span>
           <span>{post.lokasi}</span>
         </div>
@@ -258,13 +297,13 @@ const ForumDetailPage = () => {
 
         {/* --- Dynamic Profile Section --- */}
         <div className="flex items-center gap-2 mb-4">
-          {post.Profile.foto && ( // Conditionally render avatar if it exists
+          {/* {post.Profile.foto && ( // Conditionally render avatar if it exists
             <img
               src={post.Profile.foto}
               alt={`${post.Profile.username}'s Avatar`}
               className="w-10 h-10 rounded-full object-cover"
             />
-          )}
+          )} */}
           {post.username && ( // Conditionally render username if it exists
             <span className="font-semibold text-gray-800">{post.username}</span>
           )}
