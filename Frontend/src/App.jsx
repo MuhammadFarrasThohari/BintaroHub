@@ -12,7 +12,6 @@ function App() {
         <NavBar />
         <Sidebar>
           <AppRoutes/>
-
         </Sidebar>
      
     </Router>

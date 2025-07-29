@@ -297,15 +297,15 @@ const ForumDetailPage = () => {
 
         {/* --- Dynamic Profile Section --- */}
         <div className="flex items-center gap-2 mb-4">
-          {/* {post.Profile.foto && ( // Conditionally render avatar if it exists
+          {post.Profile.foto && ( // Conditionally render avatar if it exists
             <img
               src={post.Profile.foto}
               alt={`${post.Profile.username}'s Avatar`}
               className="w-10 h-10 rounded-full object-cover"
             />
-          )} */}
-          {post.username && ( // Conditionally render username if it exists
-            <span className="font-semibold text-gray-800">{post.username}</span>
+          )}
+          {post.Profile.username && ( // Conditionally render username if it exists
+            <span className="font-semibold text-gray-800">{post.Profile.username}</span>
           )}
         </div>
         {/* --- End Dynamic Profile Section --- */}
