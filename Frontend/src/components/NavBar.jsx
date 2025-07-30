@@ -34,7 +34,7 @@ const UserProfile = ({ user, onSignOut }) => {
         to={`/forum-editor/${encodedDisplayName}`}
         className="flex items-center space-x-2"
       >
-        <div className="avatar placeholder">
+        <div className="avatar placeholder h-15">
           {user.foto ? (
             <>
               <img 
