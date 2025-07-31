@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import {
   MdKeyboardArrowUp,
@@ -23,6 +23,62 @@ const ForumDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const postId = parseInt(id);
+  
+  // Function to refresh comments with vote counts
+  const refreshComments = useCallback(async () => {
+    if (!postId) return;
+    
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      
+      const { data, error } = await supabase
+        .from("Komentar")
+        .select(`
+          *,
+          Profile(*),
+          like_komentar(id, user_id),
+          dislike_komentar(id, user_id)
+        `)
+        .eq("artikel_id", postId)
+        .order("created_at", { ascending: false });
+        
+      if (error) {
+        console.error("Error fetching comments:", error);
+        return;
+      }
+      
+      // Process comments with vote counts and user vote status
+      const processedComments = data?.map(comment => ({
+        ...comment,
+        upvotes: comment.like_komentar?.length || 0,
+        downvotes: comment.dislike_komentar?.length || 0,
+        userVote: user ? (
+          comment.like_komentar?.some(like => like.user_id === user.id) ? 'up' :
+          comment.dislike_komentar?.some(dislike => dislike.user_id === user.id) ? 'down' :
+          null
+        ) : null
+      })) || [];
+      
+      // Group comments with their replies
+      const groupedComments = processedComments.reduce((acc, comment) => {
+        if (!comment.parent_id) {
+          // This is a top-level comment
+          acc.push({
+            ...comment,
+            replies: processedComments.filter(reply => 
+              reply.parent_id === comment.id
+            ).sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+          });
+        }
+        return acc;
+      }, []);
+      
+      setComments(groupedComments);
+    } catch (error) {
+      console.error("Unexpected error fetching comments:", error);
+    }
+  }, [postId]);
   
   // Fetch post data
   useEffect(() => {
@@ -56,28 +112,8 @@ const ForumDetailPage = () => {
 
   // Fetch comments data
   useEffect(() => {
-    const fetchKomentar = async () => {
-      if (!postId) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from("Komentar")
-          .select("*, Profile(*)")
-          .eq("artikel_id", postId)
-          .order("created_at", { ascending: false });
-          
-        if (error) {
-          console.error("Error fetching comments:", error);
-        } else {
-          setComments(data);
-        }
-      } catch (error) {
-        console.error("Unexpected error fetching comments:", error);
-      }
-    };
-    
-    fetchKomentar();
-  }, [postId]);
+    refreshComments();
+  }, [refreshComments]);
 
   const categories = [
     {
@@ -158,12 +194,7 @@ const ForumDetailPage = () => {
         throw error;
       } else {
         // Refresh comments after adding
-        const { data: updatedComments } = await supabase
-          .from("Komentar")
-          .select("*, Profile(*)")
-          .eq("artikel_id", postId)
-          .order("created_at", { ascending: false });
-        setComments(updatedComments);
+        await refreshComments();
       }
     } catch (error) {
       console.error("Error adding comment:", error);
@@ -172,101 +203,200 @@ const ForumDetailPage = () => {
     setNewComment("");
   };
 
-  const handleVote = (id, type, isReply = false, parentId) => {
-    setComments((prev) =>
-      prev.map((comment) => {
-        if (!isReply && comment.id === id) {
-          const updated = { ...comment };
-          if (updated.userVote === "up") updated.upvotes--;
-          if (updated.userVote === "down") updated.downvotes--;
-          if (updated.userVote !== type) {
-            if (type === "up") updated.upvotes++;
-            else updated.downvotes++;
-            updated.userVote = type;
-          } else {
-            updated.userVote = null;
+  const handleVote = async (commentId, type) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      
+      if (!user) {
+        alert("You must be logged in to vote");
+        return;
+      }
+      
+      // Check if user has already voted on this comment
+      const [likeResult, dislikeResult] = await Promise.all([
+        supabase
+          .from("like_komentar")
+          .select("id")
+          .eq("comment_id", commentId)
+          .eq("user_id", user.id)
+          .maybeSingle(), // Use maybeSingle instead of single to avoid errors when no data found
+        supabase
+          .from("dislike_komentar")
+          .select("id")
+          .eq("comment_id", commentId)
+          .eq("user_id", user.id)
+          .maybeSingle() // Use maybeSingle instead of single to avoid errors when no data found
+      ]);
+      
+      if (likeResult.error && likeResult.error.code !== 'PGRST116') {
+        console.error("Error checking likes:", likeResult.error);
+        throw likeResult.error;
+      }
+      
+      if (dislikeResult.error && dislikeResult.error.code !== 'PGRST116') {
+        console.error("Error checking dislikes:", dislikeResult.error);
+        throw dislikeResult.error;
+      }
+      
+      const hasLiked = likeResult.data !== null;
+      const hasDisliked = dislikeResult.data !== null;
+      
+      // Handle vote logic with mutual exclusivity
+      if (type === "up") {
+        if (hasLiked) {
+          // Remove like (toggle off)
+          const { error } = await supabase
+            .from("like_komentar")
+            .delete()
+            .eq("comment_id", commentId)
+            .eq("user_id", user.id);
+          
+          if (error) {
+            console.error("Error removing like:", error);
+            throw error;
           }
-          return updated;
-        }
-
-        if (isReply && comment.id === parentId) {
-          const replies = comment.replies.map((r) => {
-            if (r.id === id) {
-              const updated = { ...r };
-              if (updated.userVote === "up") updated.upvotes--;
-              if (updated.userVote === "down") updated.downvotes--;
-              if (updated.userVote !== type) {
-                if (type === "up") updated.upvotes++;
-                else updated.downvotes++;
-                updated.userVote = type;
-              } else {
-                updated.userVote = null;
-              }
-              return updated;
+        } else {
+          // Remove any existing dislike first (mutual exclusivity)
+          if (hasDisliked) {
+            const { error: removeDislikeError } = await supabase
+              .from("dislike_komentar")
+              .delete()
+              .eq("comment_id", commentId)
+              .eq("user_id", user.id);
+            
+            if (removeDislikeError) {
+              console.error("Error removing existing dislike:", removeDislikeError);
+              throw removeDislikeError;
             }
-            return r;
-          });
-          return { ...comment, replies };
+          }
+          
+          // Add like
+          const { error: insertError } = await supabase
+            .from("like_komentar")
+            .insert({
+              comment_id: commentId,
+              user_id: user.id
+            });
+            
+          if (insertError) {
+            console.error("Error adding like:", insertError);
+            throw insertError;
+          }
         }
-
-        return comment;
-      })
-    );
+      } else if (type === "down") {
+        if (hasDisliked) {
+          // Remove dislike (toggle off)
+          const { error } = await supabase
+            .from("dislike_komentar")
+            .delete()
+            .eq("comment_id", commentId)
+            .eq("user_id", user.id);
+            
+          if (error) {
+            console.error("Error removing dislike:", error);
+            throw error;
+          }
+        } else {
+          // Remove any existing like first (mutual exclusivity)
+          if (hasLiked) {
+            const { error: removeLikeError } = await supabase
+              .from("like_komentar")
+              .delete()
+              .eq("comment_id", commentId)
+              .eq("user_id", user.id);
+            
+            if (removeLikeError) {
+              console.error("Error removing existing like:", removeLikeError);
+              throw removeLikeError;
+            }
+          }
+          
+          // Add dislike
+          const { error: insertError } = await supabase
+            .from("dislike_komentar")
+            .insert({
+              comment_id: commentId,
+              user_id: user.id
+            });
+            
+          if (insertError) {
+            console.error("Error adding dislike:", insertError);
+            throw insertError;
+          }
+        }
+      }
+      
+      // Refresh comments to get updated vote counts
+      await refreshComments();
+      
+    } catch (error) {
+      console.error("Error voting:", error);
+      alert("Failed to vote. Please try again.");
+    }
   };
 
-  const handleAddReplyToComment = (parentId, replyContent) => {
-    setComments((prev) =>
-      prev.map((comment) =>
-        comment.id === parentId
-          ? {
-              ...comment,
-              replies: [
-                ...(comment.replies || []),
-                {
-                  id: Date.now(),
-                  username: "Test2",
-                  timeAgo: "now",
-                  content: replyContent,
-                  upvotes: 0,
-                  downvotes: 0,
-                  avatar: "https://placehold.co/200x200/000000/000000.png",
-                  userVote: null,
-                },
-              ],
-            }
-          : comment
-      )
-    );
+  const handleAddReplyToComment = async (parentId, replyContent) => {
+    if (!replyContent.trim()) return;
+    
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      
+      if (!user) {
+        alert("You must be logged in to reply");
+        return;
+      }
+      
+      const { error } = await supabase.from("Komentar").insert({
+        isi_komentar: replyContent,
+        artikel_id: postId,
+        id_user: user.id,
+        parent_id: parentId,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Refresh comments after adding reply
+      await refreshComments();
+    } catch (error) {
+      console.error("Error adding reply:", error);
+      alert("Failed to add reply. Please try again.");
+    }
   };
 
-  const CommentComponent = ({ comment, isReply = false, parentId }) => {
+  const CommentComponent = ({ comment, isReply = false }) => {
     const [replyingToThisComment, setReplyingToThisComment] = useState(false);
     const [currentReplyText, setCurrentReplyText] = useState("");
+    const [showReplies, setShowReplies] = useState(true); // State to control reply visibility
 
-    const handleReplySubmit = () => {
+    const handleReplySubmit = async () => {
       if (!currentReplyText.trim()) return;
-      handleAddReplyToComment(comment.id, currentReplyText);
+      await handleAddReplyToComment(comment.id, currentReplyText);
       setCurrentReplyText("");
       setReplyingToThisComment(false);
     };
 
     return (
-      <div className={`flex gap-3 ${isReply ? "ml-8 mt-3" : "mb-4"}`}>
+      <div className={`flex gap-3 ${isReply ? "mb-3 bg-gray-50 p-3 rounded-lg" : "mb-4 p-4 bg-white rounded-lg shadow-sm border"}`}>
         <img
           src={comment.Profile?.foto || comment.avatar || "https://placehold.co/40x40/cccccc/000000.png"}
           alt={comment.Profile?.username || comment.username || "User"}
-          className="w-10 h-10 rounded-full object-cover"
+          className={`rounded-full object-cover ${isReply ? "w-8 h-8" : "w-10 h-10"}`}
         />
         <div className="flex-1">
           <div className="flex gap-2 text-sm text-gray-700">
             <span className="font-semibold">
               {comment.Profile?.username || comment.username || "Anonymous"}
             </span>
+            {isReply && <span className="text-blue-500 text-xs bg-blue-100 px-2 py-0.5 rounded">replied</span>}
             <span className="text-xs text-gray-400">
               {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : comment.timeAgo}
             </span>
           </div>
-          <p className="text-sm my-2">
+          <p className={`my-2 text-gray-800 ${isReply ? "text-sm" : "text-base"}`}>
             {comment.isi_komentar || comment.content}
           </p>
           <div className="flex gap-4 text-sm text-gray-500">
@@ -274,7 +404,7 @@ const ForumDetailPage = () => {
               className={`cursor-pointer ${
                 comment.userVote === "up" ? "text-green-500" : ""
               }`}
-              onClick={() => handleVote(comment.id, "up", isReply, parentId)}
+              onClick={() => handleVote(comment.id, "up")}
             >
               <MdKeyboardArrowUp />
             </span>
@@ -283,18 +413,38 @@ const ForumDetailPage = () => {
               className={`cursor-pointer ${
                 comment.userVote === "down" ? "text-red-500" : ""
               }`}
-              onClick={() => handleVote(comment.id, "down", isReply, parentId)}
+              onClick={() => handleVote(comment.id, "down")}
             >
               <MdKeyboardArrowDown />
             </span>
             <span>{comment.downvotes || 0}</span>
             {!isReply && (
-              <button
-                onClick={() => setReplyingToThisComment(!replyingToThisComment)}
-                className="text-blue-500 hover:underline"
-              >
-                Reply
-              </button>
+              <>
+                <button
+                  onClick={() => setReplyingToThisComment(!replyingToThisComment)}
+                  className="text-blue-500 hover:underline"
+                >
+                  Reply
+                </button>
+                {comment.replies?.length > 0 && (
+                  <button
+                    onClick={() => setShowReplies(!showReplies)}
+                    className="text-gray-500 hover:underline flex items-center gap-1"
+                  >
+                    {showReplies ? (
+                      <>
+                        <MdKeyboardArrowUp className="text-xs" />
+                        Hide {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
+                      </>
+                    ) : (
+                      <>
+                        <MdKeyboardArrowDown className="text-xs" />
+                        Show {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
+                      </>
+                    )}
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -305,25 +455,42 @@ const ForumDetailPage = () => {
                 value={currentReplyText}
                 onChange={(e) => setCurrentReplyText(e.target.value)}
                 placeholder="Write reply..."
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleReplySubmit();
+                  }
+                }}
               />
               <button
                 onClick={handleReplySubmit}
-                className="bg-blue-500 text-white px-2 py-1 rounded"
+                className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
               >
                 <MdSend />
+              </button>
+              <button
+                onClick={() => {
+                  setReplyingToThisComment(false);
+                  setCurrentReplyText("");
+                }}
+                className="bg-gray-400 text-white px-2 py-1 rounded hover:bg-gray-500"
+              >
+                Cancel
               </button>
             </div>
           )}
 
-          {!isReply &&
-            comment.replies?.map((reply) => (
-              <CommentComponent
-                key={reply.id}
-                comment={reply}
-                isReply={true}
-                parentId={comment.id}
-              />
-            ))}
+          {/* Replies section - collapsible */}
+          {!isReply && comment.replies?.length > 0 && showReplies && (
+            <div className="mt-3 border-l-2 border-blue-100 pl-4">
+              {comment.replies.map((reply) => (
+                <CommentComponent
+                  key={reply.id}
+                  comment={reply}
+                  isReply={true}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -457,13 +624,14 @@ const ForumDetailPage = () => {
       </div>
 
       <div className="p-6 bg-gray-50 border-t">
-        <div className="flex gap-2 mb-4">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Comments ({comments?.length || 0})</h3>
+        <div className="flex gap-2 mb-6">
           <input
             type="text"
             placeholder="Add your comment..."
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            className="flex-1 border px-3 py-2 rounded"
+            className="flex-1 border px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 handleAddComment();
@@ -472,19 +640,21 @@ const ForumDetailPage = () => {
           />
           <button
             onClick={handleAddComment}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <MdSend />
           </button>
         </div>
 
-        {commentsToShow &&
-          commentsToShow.map((comment) => (
-            <CommentComponent
-              key={comment.id}
-              comment={comment}
-            />
-          ))}
+        <div className="space-y-4">
+          {commentsToShow &&
+            commentsToShow.map((comment) => (
+              <CommentComponent
+                key={comment.id}
+                comment={comment}
+              />
+            ))}
+        </div>
 
         {comments && comments.length > 2 && !showAllComments && (
           <button
