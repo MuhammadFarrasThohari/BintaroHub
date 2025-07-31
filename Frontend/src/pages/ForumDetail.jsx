@@ -8,24 +8,76 @@ import {
   MdSend,
   MdLocationOn,
   MdShare,
-  MdFlag
+  MdFlag,
 } from "react-icons/md";
 import { supabase } from "../components/Auth/SupabaseClient";
 
 const ForumDetailPage = () => {
+  const [comments, setComments] = useState(null);
+  const [post, setPost] = useState(null);
+  const [newComment, setNewComment] = useState("");
+  const [showAllComments, setShowAllComments] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const postId = parseInt(id);
+  
+  // Fetch post data
   useEffect(() => {
     async function fetchData() {
-      const { data, error } = await supabase.from("Artikel").select("*, Profile(*)").eq("id", postId).single();
-      if (error) {
-        console.error("Error fetching forum data:", error);
-      } else {
-        console.log("Fetched forum data:", data);
-        setPost(data);
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("Artikel")
+          .select("*, Profile(*)")
+          .eq("id", postId)
+          .single();
+        
+        if (error) {
+          console.error("Error fetching forum data:", error);
+          setError("Failed to load post");
+        } else {
+          setPost(data);
+        }
+      } catch (error) {
+        console.error("Unexpected error:", error);
+        setError("An unexpected error occurred");
+      } finally {
+        setLoading(false);
       }
     }
-    fetchData();
-  }, []);
+    
+    if (postId) {
+      fetchData();
+    }
+  }, [postId]);
+
+  // Fetch comments data
+  useEffect(() => {
+    const fetchKomentar = async () => {
+      if (!postId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from("Komentar")
+          .select("*, Profile(*)")
+          .eq("artikel_id", postId)
+          .order("created_at", { ascending: false });
+          
+        if (error) {
+          console.error("Error fetching comments:", error);
+        } else {
+          setComments(data);
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching comments:", error);
+      }
+    };
+    
+    fetchKomentar();
+  }, [postId]);
 
   const categories = [
     {
@@ -51,62 +103,24 @@ const ForumDetailPage = () => {
       subcategories: ["Sosial & event", "Lingkungan", "Hewan hilang"],
     },
   ];
-  
-  const subCategoryToParent = {};
 
+  const subCategoryToParent = {};
   categories.forEach((category) => {
     category.subcategories.forEach((sub) => {
       subCategoryToParent[sub.toLowerCase()] = category.name;
     });
   });
 
-
-
-  const { id } = useParams();
-  const postId = parseInt(id);
-  const navigate = useNavigate();
-
-  const [post, setPost] = useState(null);
   const category =
     post?.tag && subCategoryToParent[post.tag.toLowerCase()]
       ? subCategoryToParent[post.tag.toLowerCase()]
       : null;
 
-  const [newComment, setNewComment] = useState("");
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      username: "Budagent15",
-      timeAgo: "3 hrs",
-      content: "Kasihan banget tukang baksonya, semoga cepat sembuh...",
-      upvotes: 14,
-      downvotes: 0,
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40",
-      userVote: null,
-      replies: [],
-    },
-    {
-      id: 2,
-      username: "Tung.central18",
-      timeAgo: "1 hr",
-      content: "Iya emak kasihan, tukang jual nasi juga melihat",
-      upvotes: 0,
-      downvotes: 0,
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40",
-      userVote: null,
-      replies: [],
-    },
-  ]);
+  const commentsToShow = showAllComments ? comments : comments?.slice(0, 2);
 
-  const [showAllComments, setShowAllComments] = useState(false);
-  const commentsToShow = showAllComments ? comments : comments.slice(0, 2);
-
-  if (!post) {
-    return <div className="p-8 text-center text-red-600">Post not found.</div>;
-  }
-
-  const handlePostVote = (type) => {
-    setPost(prevPost => {
+  const handlePostVote = async (type) => {
+    // This would typically update the database as well
+    setPost((prevPost) => {
       const updatedPost = { ...prevPost };
       if (updatedPost.userVote === "up") updatedPost.upvotes--;
       if (updatedPost.userVote === "down") updatedPost.downvotes--;
@@ -122,22 +136,39 @@ const ForumDetailPage = () => {
     });
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!newComment.trim()) return;
-    setComments([
-      ...comments,
-      {
-        id: Date.now(),
-        username: "Test2",
-        timeAgo: "now",
-        content: newComment,
-        upvotes: 0,
-        downvotes: 0,
-        avatar: "https://placehold.co/200x200/000000/000000.png",
-        userVote: null,
-        replies: [],
-      },
-    ]);
+    
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      
+      if (!user) {
+        alert("You must be logged in to comment");
+        return;
+      }
+      
+      const { error } = await supabase.from("Komentar").insert({
+        isi_komentar: newComment,
+        artikel_id: postId,
+        id_user: user.id,
+      });
+      
+      if (error) {
+        throw error;
+      } else {
+        // Refresh comments after adding
+        const { data: updatedComments } = await supabase
+          .from("Komentar")
+          .select("*, Profile(*)")
+          .eq("artikel_id", postId)
+          .order("created_at", { ascending: false });
+        setComments(updatedComments);
+      }
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      alert("Failed to add comment. Please try again.");
+    }
     setNewComment("");
   };
 
@@ -220,29 +251,43 @@ const ForumDetailPage = () => {
     };
 
     return (
-      <div className={`flex gap-3 ${isReply ? "ml-8 mt-3" : ""}`}>
-        <img src={comment.avatar} alt={comment.username} className="w-10 h-10 rounded-full" />
+      <div className={`flex gap-3 ${isReply ? "ml-8 mt-3" : "mb-4"}`}>
+        <img
+          src={comment.Profile?.foto || comment.avatar || "https://placehold.co/40x40/cccccc/000000.png"}
+          alt={comment.Profile?.username || comment.username || "User"}
+          className="w-10 h-10 rounded-full object-cover"
+        />
         <div className="flex-1">
           <div className="flex gap-2 text-sm text-gray-700">
-            <span className="font-semibold">{comment.username}</span>
-            <span className="text-xs text-gray-400">{comment.timeAgo}</span>
+            <span className="font-semibold">
+              {comment.Profile?.username || comment.username || "Anonymous"}
+            </span>
+            <span className="text-xs text-gray-400">
+              {comment.created_at ? new Date(comment.created_at).toLocaleDateString() : comment.timeAgo}
+            </span>
           </div>
-          <p className="text-sm my-2">{comment.content}</p>
+          <p className="text-sm my-2">
+            {comment.isi_komentar || comment.content}
+          </p>
           <div className="flex gap-4 text-sm text-gray-500">
             <span
-              className={`cursor-pointer ${comment.userVote === "up" ? "text-green-500" : ""}`}
+              className={`cursor-pointer ${
+                comment.userVote === "up" ? "text-green-500" : ""
+              }`}
               onClick={() => handleVote(comment.id, "up", isReply, parentId)}
             >
               <MdKeyboardArrowUp />
             </span>
-            <span>{comment.upvotes}</span>
+            <span>{comment.upvotes || 0}</span>
             <span
-              className={`cursor-pointer ${comment.userVote === "down" ? "text-red-500" : ""}`}
+              className={`cursor-pointer ${
+                comment.userVote === "down" ? "text-red-500" : ""
+              }`}
               onClick={() => handleVote(comment.id, "down", isReply, parentId)}
             >
               <MdKeyboardArrowDown />
             </span>
-            <span>{comment.downvotes}</span>
+            <span>{comment.downvotes || 0}</span>
             {!isReply && (
               <button
                 onClick={() => setReplyingToThisComment(!replyingToThisComment)}
@@ -261,7 +306,10 @@ const ForumDetailPage = () => {
                 onChange={(e) => setCurrentReplyText(e.target.value)}
                 placeholder="Write reply..."
               />
-              <button onClick={handleReplySubmit} className="bg-blue-500 text-white px-2 py-1 rounded">
+              <button
+                onClick={handleReplySubmit}
+                className="bg-blue-500 text-white px-2 py-1 rounded"
+              >
                 <MdSend />
               </button>
             </div>
@@ -269,17 +317,72 @@ const ForumDetailPage = () => {
 
           {!isReply &&
             comment.replies?.map((reply) => (
-              <CommentComponent key={reply.id} comment={reply} isReply={true} parentId={comment.id} />
+              <CommentComponent
+                key={reply.id}
+                comment={reply}
+                isReply={true}
+                parentId={comment.id}
+              />
             ))}
         </div>
       </div>
     );
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="mx-4 md:mx-24 bg-white min-h-screen">
+        <div className="flex justify-center items-center h-64">
+          <div className="loading loading-spinner loading-lg"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="mx-4 md:mx-24 bg-white min-h-screen">
+        <div className="p-8 text-center">
+          <div className="alert alert-error">
+            <span>{error}</span>
+          </div>
+          <button 
+            onClick={() => navigate(-1)}
+            className="btn btn-primary mt-4"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Post not found
+  if (!post) {
+    return (
+      <div className="mx-4 md:mx-24 bg-white min-h-screen">
+        <div className="p-8 text-center text-red-600">
+          <p>Post not found.</p>
+          <button 
+            onClick={() => navigate(-1)}
+            className="btn btn-primary mt-4"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-4 md:mx-24 bg-white min-h-screen">
       <div className="p-4 bg-gray-100 text-sm text-gray-600">
-        <span onClick={() => navigate(-1)} className="cursor-pointer text-blue-600 hover:underline">
+        <span
+          onClick={() => navigate(-1)}
+          className="cursor-pointer text-blue-600 hover:underline"
+        >
           Forum Highlights
         </span>{" "}
         &gt; {post.judul}
@@ -288,49 +391,67 @@ const ForumDetailPage = () => {
       <div className="p-6">
         <div className="text-gray-600 flex items-center gap-2 mb-2">
           <MdLocationOn />
-          <span>{category} - {post.tag}</span>
+          <span>
+            {category} - {post.tag}
+          </span>
           <span className="mx-1">•</span>
           <span>{post.lokasi}</span>
         </div>
 
         <h1 className="text-2xl font-bold text-gray-900 mb-4">{post.judul}</h1>
 
-        {/* --- Dynamic Profile Section --- */}
+        {/* Dynamic Profile Section */}
         <div className="flex items-center gap-2 mb-4">
-          {post.Profile.foto && ( // Conditionally render avatar if it exists
+          {post.Profile?.foto && (
             <img
               src={post.Profile.foto}
-              alt={`${post.Profile.username}'s Avatar`}
+              alt={`${post.Profile.username || 'User'}'s Avatar`}
               className="w-10 h-10 rounded-full object-cover"
             />
           )}
-          {post.Profile.username && ( // Conditionally render username if it exists
-            <span className="font-semibold text-gray-800">{post.Profile.username}</span>
+          {post.Profile?.username && (
+            <span className="font-semibold text-gray-800">
+              {post.Profile.username}
+            </span>
+          )}
+          {post.created_at && (
+            <span className="text-sm text-gray-500">
+              {new Date(post.created_at).toLocaleDateString()}
+            </span>
           )}
         </div>
-        {/* --- End Dynamic Profile Section --- */}
 
-        {post.foto && <img src={post.foto} alt={post.judul} className="w-full aspect-video object-cover rounded mb-6" />}
+        {post.foto && (
+          <img
+            src={post.foto}
+            alt={post.judul}
+            className="w-full aspect-video object-cover rounded mb-6"
+          />
+        )}
 
-        <p className="text-gray-700">{post.isi}</p>
+        <p className="text-gray-700 whitespace-pre-wrap">{post.isi}</p>
 
         <div className="flex gap-6 mt-6 text-gray-600">
           <div className="flex gap-1 items-center">
             <MdKeyboardArrowUp
-              className={`cursor-pointer ${post.userVote === "up" ? "text-green-500" : ""}`}
+              className={`cursor-pointer ${
+                post.userVote === "up" ? "text-green-500" : ""
+              }`}
               onClick={() => handlePostVote("up")}
             />
-            {post.upvotes}
+            {post.upvotes || 0}
           </div>
           <div className="flex gap-1 items-center">
             <MdKeyboardArrowDown
-              className={`cursor-pointer ${post.userVote === "down" ? "text-red-500" : ""}`}
+              className={`cursor-pointer ${
+                post.userVote === "down" ? "text-red-500" : ""
+              }`}
               onClick={() => handlePostVote("down")}
             />
-            {post.downvotes}
+            {post.downvotes || 0}
           </div>
           <div className="flex gap-1 items-center">
-            <MdShare /> {post.comments}
+            <MdShare /> {comments?.length || 0}
           </div>
         </div>
       </div>
@@ -343,22 +464,29 @@ const ForumDetailPage = () => {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             className="flex-1 border px-3 py-2 rounded"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleAddComment();
+              }
+            }}
           />
-          <button onClick={handleAddComment} className="bg-blue-600 text-white px-4 py-2 rounded">
+          <button
+            onClick={handleAddComment}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
             <MdSend />
           </button>
         </div>
 
-        {commentsToShow.map((comment) => (
-          <CommentComponent
-            key={comment.id}
-            comment={comment}
-            handleVote={handleVote}
-            handleAddReplyToComment={handleAddReplyToComment}
-          />
-        ))}
+        {commentsToShow &&
+          commentsToShow.map((comment) => (
+            <CommentComponent
+              key={comment.id}
+              comment={comment}
+            />
+          ))}
 
-        {comments.length > 2 && !showAllComments && (
+        {comments && comments.length > 2 && !showAllComments && (
           <button
             onClick={() => setShowAllComments(true)}
             className="mt-4 text-blue-600 hover:underline flex items-center"
@@ -366,7 +494,7 @@ const ForumDetailPage = () => {
             Show More Comments <MdKeyboardArrowDown className="ml-1" />
           </button>
         )}
-          {showAllComments && (
+        {showAllComments && (
           <button
             onClick={() => setShowAllComments(false)}
             className="mt-4 text-blue-600 hover:underline flex items-center"
