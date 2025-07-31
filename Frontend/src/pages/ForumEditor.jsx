@@ -1,75 +1,164 @@
 import React, { useState, useEffect } from 'react';
 import { BiImage } from 'react-icons/bi';
 import { IoLocationOutline } from "react-icons/io5";
+import { useParams, useNavigate } from 'react-router';
+import { supabase } from '../components/Auth/SupabaseClient';
 // Import new icons for edit and delete
 import { FiEdit } from 'react-icons/fi'; // For edit icon
 import { MdDelete } from 'react-icons/md'; // For delete icon
-
 import BHLogo from '../assets/Logo/BHub-Logo.png';
 
 const ForumEditor = () => {
-  const [displayName, setDisplayName] = useState('test2');
+  const { displayName } = useParams(); // Get displayName from URL params
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   const [forums, setForums] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error] = useState(null); // No real error since this is dummy
+  const [error, setError] = useState(null);
 
+  // Get current user
   useEffect(() => {
-    setLoading(true);
+    const getCurrentUser = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Error getting session:", error);
+          setError("Failed to get user session");
+          return;
+        }
+        
+        if (!session?.user) {
+          console.log("No user session found");
+          navigate('/'); // Redirect to home if no user
+          return;
+        }
+        
+        setUser(session.user);
+      } catch (error) {
+        console.error("Unexpected error:", error);
+        setError("An unexpected error occurred");
+      }
+    };
 
-    // Simulate API call
-    setTimeout(() => {
-      const dummyForums = [
-        {
-          id: 1,
-          title: 'Lampu Jalan Mati di Sektor 4',
-          description: 'Sudah 3 malam lampu jalan di dekat taman sektor 4 mati total.',
-          category: 'Layanan Publik',
-          subcategory: 'Fasilitas Umum',
-          location: 'Sektor 4',
-          image: 'https://placehold.co/600x400?text=Lampu+Jalan+Mati',
-          hasImage: true,
-        },
-        {
-          id: 2,
-          title: 'Hewan Hilang: Kucing Persia Abu-abu',
-          description: 'Terakhir terlihat di sekitar masjid besar sektor 6. Mohon bantuan jika ada yang melihat.',
-          category: 'Masyarakat',
-          subcategory: 'Hewan Hilang',
-          location: 'Sektor 6',
-          image: 'https://placehold.co/600x400?text=Kemacetan+Parah',
-          hasImage: false,
-        },
-        {
-          id: 3,
-          title: 'Kemacetan Parah di Jalan Boulevard',
-          description: 'Kemacetan sudah berlangsung sejak pagi. Kemungkinan ada kecelakaan kecil.',
-          category: 'Berita Lokal',
-          subcategory: 'Lalu Lintas',
-          location: 'Sektor 2',
-          image: 'https://placehold.co/600x400?text=Kemacetan+Parah',
-          hasImage: true,
-        },
-      ];
+    getCurrentUser();
+  }, [navigate]);
 
-      setForums(dummyForums);
-      setLoading(false);
-    }, 1000);
-  }, []);
+  // Fetch forums when user is available
+  useEffect(() => {
+    const fetchForums = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("Artikel")
+          .select("*")
+          .eq("id_penulis", user.id)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error("Error fetching forums:", error);
+          setError("Failed to fetch forums");
+          return;
+        }
+        
+        console.log("Fetched forums:", data);
+        setForums(data || []);
+      } catch (error) {
+        console.error("Unexpected error:", error);
+        setError("An unexpected error occurred while fetching forums");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Handler for delete functionality (you'd replace this with actual API calls)
-  const handleDeleteForum = (id) => {
-    if (window.confirm('Are you sure you want to delete this forum?')) {
+    fetchForums();
+  }, [user?.id]);
+
+  // Handler for delete individual forum
+  const handleDeleteForum = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this forum?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("Artikel")
+        .delete()
+        .eq("id", id)
+        .eq("id_penulis", user.id); // Ensure user can only delete their own forums
+
+      if (error) {
+        console.error("Error deleting forum:", error);
+        alert("Failed to delete forum. Please try again.");
+        return;
+      }
+
+      // Remove from local state
       setForums(forums.filter(forum => forum.id !== id));
-      console.log(`Deleting forum with ID: ${id}`);
-      // In a real app, you would make an API call here to delete the forum from the backend
+      console.log(`Forum with ID ${id} deleted successfully`);
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      alert("An unexpected error occurred while deleting the forum.");
     }
   };
 
-  // Handler for edit functionality (you'd replace this with navigation or modal opening)
+  // Handler for delete all forums
+  const handleDeleteAllForums = async () => {
+    if (!window.confirm('Are you sure you want to delete ALL forums? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("Artikel")
+        .delete()
+        .eq("id_penulis", user.id);
+
+      if (error) {
+        console.error("Error deleting all forums:", error);
+        alert("Failed to delete all forums. Please try again.");
+        return;
+      }
+
+      setForums([]);
+      console.log("All forums deleted successfully");
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      alert("An unexpected error occurred while deleting all forums.");
+    }
+  };
+
+  // Handler for edit functionality
   const handleEditForum = (id) => {
     console.log(`Editing forum with ID: ${id}`);
-    // In a real app, you would navigate to an edit page or open a modal for editing
+    navigate(`/edit-forum/${id}`); // Navigate to edit page
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <section className="mx-24 my-8">
+        <div className="flex justify-center items-center h-64">
+          <div className="loading loading-spinner loading-lg"></div>
+        </div>
+      </section>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <section className="mx-24 my-8">
+        <div className="alert alert-error">
+          <span>{error}</span>
+        </div>
+      </section>
+    );
+  }
+
+  // Decode display name from URL
+  const decodedDisplayName = displayName ? decodeURIComponent(displayName) : 'User';
 
   return (
     <section className="mx-24 my-8">
@@ -77,57 +166,63 @@ const ForumEditor = () => {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-end space-x-4">
           <h1 className="uppercase text-lg font-semibold text-gray-800">Your Forum Editor</h1>
-          <p className="text-gray-600">B/{displayName}</p>
+          <p className="text-gray-600">B/{decodedDisplayName}</p>
         </div>
-        {/* Forum Anda count and Delete icon */}
+        {/* Forum count and Delete all icon */}
         <div className="flex items-center space-x-2">
           <span className="text-gray-500 font-lsRegular">Forum Anda ({forums.length})</span>
-          {/* Delete Icon */}
-          <MdDelete
-            className="w-5 h-5 text-red-500 cursor-pointer hover:text-red-700 transition-colors"
-            title="Delete All Forums" // You might want to adjust the exact behavior of this delete icon
-            onClick={() => {
-              // This delete icon near "Forum Anda" could be for batch delete or a more general action.
-              // For now, it doesn't have a specific action, but you can assign one if needed.
-              // Example: console.log("Delete all forums?");
-              // If it's meant to delete all, you'd add confirmation and then setForums([])
-              if (window.confirm('Are you sure you want to delete ALL forums? This action cannot be undone.')) {
-                setForums([]);
-                console.log("All forums deleted!");
-              }
-            }}
-          />
+          {forums.length > 0 && (
+            <MdDelete
+              className="w-5 h-5 text-red-500 cursor-pointer hover:text-red-700 transition-colors"
+              title="Delete All Forums"
+              onClick={handleDeleteAllForums}
+            />
+          )}
         </div>
       </div>
 
-      {/* Loading and Error */}
-      {loading && <p className="text-center text-gray-600">Loading forums...</p>}
-      {error && <p className="text-center text-red-500">{error}</p>}
-
-      {!loading && !error && forums.length === 0 && (
-        <p className="text-center text-gray-600">No forums found. Start by creating one!</p>
+      {/* Empty state */}
+      {!loading && forums.length === 0 && (
+        <div className="text-center py-12">
+          <BiImage className="mx-auto w-16 h-16 text-gray-400 mb-4" />
+          <p className="text-gray-600 mb-4">No forums found. Start by creating one!</p>
+          <button 
+            onClick={() => navigate('/add-forum')}
+            className="btn btn-primary"
+          >
+            Create Your First Forum
+          </button>
+        </div>
       )}
 
+      {/* Forums grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {forums.map((forum) => (
           <div
             key={forum.id}
-            className="bg-white/70 rounded overflow-hidden shadow-sm hover:shadow-md transition-shadow relative" // Added relative for absolute positioning of edit icon
+            className="bg-white/70 rounded overflow-hidden shadow-sm hover:shadow-md transition-shadow relative"
           >
-            {/* Edit Icon inside the card */}
-            <FiEdit
-              className="absolute top-2 right-2 w-6 h-6 text-blue-500 cursor-pointer hover:text-blue-700 transition-colors z-10"
-              title="Edit Forum"
-              onClick={() => handleEditForum(forum.id)}
-            />
+            {/* Action buttons */}
+            <div className="absolute top-2 right-2 flex space-x-1 z-10">
+              <FiEdit
+                className="w-6 h-6 p-1 bg-white/80 rounded text-blue-500 cursor-pointer hover:text-blue-700 transition-colors"
+                title="Edit Forum"
+                onClick={() => handleEditForum(forum.id)}
+              />
+              <MdDelete
+                className="w-6 h-6 p-1 bg-white/80 rounded text-red-500 cursor-pointer hover:text-red-700 transition-colors"
+                title="Delete Forum"
+                onClick={() => handleDeleteForum(forum.id)}
+              />
+            </div>
 
             {/* Image */}
             <div className="aspect-video bg-subsubhead flex items-center justify-center">
-              {forum.hasImage && forum.image ? (
+              {forum.foto ? (
                 <img
                   loading='lazy'
-                  src={forum.image}
-                  alt="Forum post"
+                  src={forum.foto}
+                  alt={forum.judul || "Forum post"}
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -141,24 +236,22 @@ const ForumEditor = () => {
                 <img className="object-contain size-4" src={BHLogo} alt="BintaroHub Logo" />
                 <h2 className="text-sm font-lsRegular">
                   {forum.category}
-                  {forum.subcategory && (
-                    <span className="text-allBlue">—{forum.subcategory}</span>
+                  {forum.tag && (
+                    <span className="text-allBlue">—{forum.tag}</span>
                   )}
                 </h2>
               </div>
 
-              <h3 className="text-base font-semibold text-gray-800 mb-2 truncate">
-                {forum.title}
+              <h3 className="text-base font-semibold text-gray-800 mb-2 line-clamp-2">
+                {forum.judul}
               </h3>
 
-              {/* Delete Icon per card (optional, as you also have a global one) */}
-              {/* <div className="flex justify-end mt-2">
-                <MdDelete
-                  className="w-5 h-5 text-red-500 cursor-pointer hover:text-red-700 transition-colors"
-                  title="Delete Forum"
-                  onClick={() => handleDeleteForum(forum.id)}
-                />
-              </div> */}
+              {/* Additional info */}
+              {forum.created_at && (
+                <p className="text-xs text-gray-500">
+                  Created: {new Date(forum.created_at).toLocaleDateString()}
+                </p>
+              )}
             </div>
           </div>
         ))}

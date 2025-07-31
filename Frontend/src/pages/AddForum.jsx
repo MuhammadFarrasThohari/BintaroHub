@@ -56,14 +56,14 @@ const AddForum = ({ onAddForum }) => { //
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [showLocationModal, setShowLocationModal] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false) 
-  
-  const user = supabase.auth.getUser()
+  const [user, setUser] = useState(null);
   const [username, setUsername] = useState('User');
   const navigate = useNavigate()
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data, error } = await supabase.auth.getUser();
+      console.log("Fetched user:", data.user);
 
       if (error) {
         console.error("Error fetching user:", error);
@@ -73,12 +73,14 @@ const AddForum = ({ onAddForum }) => { //
       // Extract the username from metadata
       const user = data?.user;
       const displayName = user?.user_metadata?.username || user?.email?.split("@")[0] || "User";
-
+      setUser(user);
       setUsername(displayName); // Save it to state
     };
 
     fetchUser();
   }, []);
+
+  // console.log("Current user:", user);
 
   const handleImageUpload = (event) => {
     const files = Array.from(event.target.files)
@@ -101,7 +103,7 @@ const AddForum = ({ onAddForum }) => { //
   };
 
 
-  const handleSubmit = (e) => { // <-- Change to synchronous (remove async/await)
+  const handleSubmit = async (e) => { // <-- Change to synchronous (remove async/await)
     e.preventDefault()
     setIsSubmitting(true)
 
@@ -112,43 +114,59 @@ const AddForum = ({ onAddForum }) => { //
       return;
     }
 
+    // store image to Supabase Storage
+    const filePhotoName = `public/${Date.now()}-${title}`
+    try{
+      const {data, error} = await supabase.storage.from('fotoartikel').upload(filePhotoName, uploadedImages[0].file)
+      if (error){
+        throw error
+      }else{
+        console.log("Image uploaded successfully:", data);
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+    // Get the URL of the uploaded image
+    try {
+      const { data, error } = await supabase.storage.from('fotoartikel').getPublicUrl(filePhotoName);
+      if (error) {
+        throw error;
+      }else{
+        var imageUrl = data.publicUrl;
+        console.log("Public URL of the uploaded image:", imageUrl);
+      }
+      
+    } catch (error) {
+      console.error("Error getting public URL:", error);
+    }
+
+
     // --- SIMULATION LOGIC HERE ---
     console.log("Simulating forum submission...");
 
     // Create a dummy forum object with the collected data
     const newForum = {
-      id: Date.now(), // Generate a unique ID for the simulated forum
-      title,
-      description,
-      category: selectedCategory,
-      location: selectedLocation,
-      // For images, we'll just use the first one's URL for display simulation
-      // In a real app, you'd handle image uploads and store public URLs
-      image: uploadedImages.length > 0 ? uploadedImages[0].url : null,
-      hasImage: uploadedImages.length > 0,
-      created_at: new Date().toISOString(),
+      judul: title,
+      tag: selectedCategory,
+      isi: description,
+      id_penulis: user?.id,
+      foto: imageUrl,
+      lokasi: selectedLocation,
     };
+    uploadToSupabase(newForum); // Call the function to upload to Supabase
 
-    console.log("Simulated new forum:", newForum);
-
-    // Call the prop function to "add" the forum to the parent's state
-    if (onAddForum) {
-      onAddForum(newForum);
-    }
-
-    // Simulate a short delay for feedback
-    setTimeout(() => {
-      alert("Forum successfully simulated and added!");
-      // Reset form fields
-      setTitle("");
-      setDescription("");
-      setSelectedCategory("");
-      setSelectedLocation("");
-      setUploadedImages([]);
-      setIsSubmitting(false);
-      navigate(`/forum-editor/${encodeURIComponent(username)}`);
-
-    }, 500); 
+  }
+  const uploadToSupabase = async (newForum) =>{
+      const {error} = await supabase.from('Artikel').insert(newForum)
+      if (error) {
+        console.error("Error inserting forum:", error);
+        alert("Failed to submit forum. Please try again.");
+        setIsSubmitting(false);
+        return;
+      } else {
+        console.log("Forum submitted successfully:", newForum);
+        alert("Forum submitted successfully!");
+      }
     
   }
 
